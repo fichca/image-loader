@@ -1,6 +1,6 @@
 ## We'll choose the incredibly lightweight
 ## Go alpine image to work with
-FROM golang:1.20 AS builder
+FROM golang:1.19 AS builder
 
 ## We create an /app directory in which
 ## we'll put all of our project code
@@ -8,7 +8,7 @@ RUN mkdir /app
 ADD . /app
 WORKDIR /app
 ## We want to build our application's binary executable
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./...
+RUN CGO_ENABLED=0 GOOS=linux go build -o main ./main.go
 
 ## the lightweight scratch image we'll
 ## run our application within
