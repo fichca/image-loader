@@ -1,8 +1,8 @@
 package services
 
 import (
-	"image-loader/internal/dto"
-	"image-loader/internal/entity"
+	"github.com/fichca/image-loader/internal/dto"
+	"github.com/fichca/image-loader/internal/entity"
 )
 
 type repository interface {

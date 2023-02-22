@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/fichca/image-loader/internal/repository"
+	"github.com/fichca/image-loader/internal/server"
+	"github.com/fichca/image-loader/internal/services"
 	"github.com/sirupsen/logrus"
-	"image-loader/internal/repository"
-	"image-loader/internal/server"
-	"image-loader/internal/services"
 )
 
 func main() {

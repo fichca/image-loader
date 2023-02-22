@@ -1,4 +1,4 @@
-module image-loader
+module github.com/fichca/image-loader
 
 go 1.19
 

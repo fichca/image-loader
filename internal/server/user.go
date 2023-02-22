@@ -2,9 +2,9 @@ package server
 
 import (
 	"encoding/json"
+	"github.com/fichca/image-loader/internal/dto"
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
-	"image-loader/internal/dto"
 	"io"
 	"net/http"
 	"strconv"

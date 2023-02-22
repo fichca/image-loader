@@ -3,7 +3,7 @@ package repository
 import (
 	"encoding/json"
 	"fmt"
-	"image-loader/internal/entity"
+	"github.com/fichca/image-loader/internal/entity"
 	"io"
 	"os"
 	"sync"
