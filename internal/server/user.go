@@ -1,7 +1,9 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/fichca/image-loader/internal/dto"
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
@@ -11,8 +13,11 @@ import (
 )
 
 type userService interface {
-	AddUser(user dto.UserDto) error
-	GetUser(id int) (dto.UserDto, error)
+	Add(ctx context.Context, user dto.UserDto) error
+	GetById(ctx context.Context, id int) (dto.UserDto, error)
+	Update(ctx context.Context, user dto.UserDto) error
+	Delete(ctx context.Context, id int) error
+	GetAll(ctx context.Context) error
 }
 
 type userHandler struct {
@@ -42,7 +47,7 @@ func (s *userHandler) StartServer() {
 		Handler: s.r,
 	}
 
-	s.logger.Info("server is running!")
+	s.logger.Info(fmt.Sprintf("server is running on port %s!", s.listenURI))
 	err := srv.ListenAndServe()
 	if err != nil {
 		s.logger.Fatal(err)
@@ -65,7 +70,7 @@ func (s *userHandler) HandleAddUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}(r.Body)
 
-	err = s.us.AddUser(user)
+	err = s.us.Add(context.Background(), user)
 	if err != nil {
 		s.handleError(err, http.StatusInternalServerError, w)
 		return
@@ -83,7 +88,7 @@ func (s *userHandler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.us.GetUser(id)
+	user, err := s.us.GetById(context.Background(), id)
 	if err != nil {
 		s.handleError(err, http.StatusInternalServerError, w)
 		return
