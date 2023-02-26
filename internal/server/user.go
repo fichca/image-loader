@@ -50,7 +50,7 @@ func (uh *userHandler) StartServer() {
 		Handler: uh.r,
 	}
 
-	uh.logger.Info(fmt.Sprintf("server is running on port %uh!", uh.listenURI))
+	uh.logger.Info(fmt.Sprintf("server is running on port %v!", uh.listenURI))
 	err := srv.ListenAndServe()
 	if err != nil {
 		uh.logger.Fatal(err)
