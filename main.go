@@ -14,11 +14,11 @@ import (
 func main() {
 
 	logger := logrus.New()
-	cfg := getConfig(logger)
+	cfg := initConfig(logger)
 
-	dbConnection := getConnectionToDB(cfg.DB, logger)
+	dbConnection := initConnectionToDB(cfg.DB, logger)
 
-	userRepo := getUserRepo(dbConnection, cfg.DB, logger)
+	userRepo := initUserRepo(dbConnection, cfg.DB, logger)
 	userService := service.NewUserService(userRepo)
 
 	srv := server.NewUserHandler(cfg.App.Port, logger, userService)
@@ -27,7 +27,7 @@ func main() {
 	srv.StartServer()
 }
 
-func getUserRepo(db *sqlx.DB, cfg *config.DB, logger *logrus.Logger) *repository.UserRepo {
+func initUserRepo(db *sqlx.DB, cfg *config.DB, logger *logrus.Logger) *repository.UserRepo {
 	userRepo := repository.NewUserRepo(db, cfg)
 	err := userRepo.RunMigrations()
 	if err != nil {
@@ -36,7 +36,7 @@ func getUserRepo(db *sqlx.DB, cfg *config.DB, logger *logrus.Logger) *repository
 	return userRepo
 }
 
-func getConfig(logger *logrus.Logger) *config.Config {
+func initConfig(logger *logrus.Logger) *config.Config {
 	cfg := config.Config{}
 	err := cfg.Process()
 	if err != nil {
@@ -46,7 +46,7 @@ func getConfig(logger *logrus.Logger) *config.Config {
 	return &cfg
 }
 
-func getConnectionToDB(cfg *config.DB, logger *logrus.Logger) *sqlx.DB {
+func initConnectionToDB(cfg *config.DB, logger *logrus.Logger) *sqlx.DB {
 	db, err := sqlx.Connect(cfg.Driver, fmt.Sprintf("user=%s dbname=%s sslmode=%s password=%s", cfg.User,
 		cfg.Name, cfg.SSLMode, cfg.Password))
 	if err != nil {

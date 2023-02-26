@@ -5,15 +5,17 @@ import (
 	"database/sql"
 	"github.com/fichca/image-loader/internal/dto"
 	"github.com/fichca/image-loader/internal/entity"
+	"github.com/jinzhu/copier"
 )
 
 type repository interface {
 	Add(ctx context.Context, user entity.User) error
 	GetById(ctx context.Context, id int) (entity.User, error)
 	Update(ctx context.Context, user entity.User) error
-	Delete(ctx context.Context, id int) error
-	GetAll(ctx context.Context) error
+	DeleteById(ctx context.Context, id int) error
+	GetAll(ctx context.Context) ([]entity.User, error)
 }
+
 type userService struct {
 	repo repository
 }
@@ -28,18 +30,27 @@ func (u *userService) GetById(ctx context.Context, id int) (dto.UserDto, error) 
 }
 
 func (u *userService) Update(ctx context.Context, user dto.UserDto) error {
-	//TODO implement me
-	panic("implement me")
+	return u.repo.Update(ctx, toUserEntity(user))
 }
 
-func (u *userService) Delete(ctx context.Context, id int) error {
-	//TODO implement me
-	panic("implement me")
+func (u *userService) DeleteById(ctx context.Context, id int) error {
+	return u.repo.DeleteById(ctx, id)
 }
 
-func (u *userService) GetAll(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+func (u *userService) GetAll(ctx context.Context) ([]dto.UserDto, error) {
+	users := make([]dto.UserDto, 0)
+
+	allUsersEntity, err := u.repo.GetAll(ctx)
+	if err != nil {
+		return users, err
+	}
+
+	err = copier.Copy(&users, &allUsersEntity)
+	if err != nil {
+		return users, err
+	}
+
+	return users, nil
 }
 
 func NewUserService(repo repository) *userService {
