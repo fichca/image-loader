@@ -90,6 +90,21 @@ func (u *UserRepo) GetAll(ctx context.Context) ([]entity.User, error) {
 	return users, nil
 }
 
+func (u *UserRepo) CheckAuth(ctx context.Context, login, password string) (entity.User, error) {
+	query := `SELECT * FROM users WHERE login = $1 AND password = $2`
+
+	var us entity.User
+
+	row := u.db.QueryRowxContext(ctx, query, login, password)
+
+	err := row.StructScan(&us)
+	if err != nil {
+		return entity.User{}, fmt.Errorf("failed to scan struct user: %w", err)
+	}
+
+	return us, nil
+}
+
 func (u *UserRepo) RunMigrations() error {
 	driver, err := postgres.WithInstance(u.db.DB, &postgres.Config{})
 	if err != nil {

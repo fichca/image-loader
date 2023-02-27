@@ -3,28 +3,50 @@ package main
 import (
 	"fmt"
 	"github.com/fichca/image-loader/internal/config"
+	"github.com/fichca/image-loader/internal/middleware"
 	"github.com/fichca/image-loader/internal/repository"
 	"github.com/fichca/image-loader/internal/server"
 	"github.com/fichca/image-loader/internal/service"
+	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
+	"net/http"
 )
 
 func main() {
-
 	logger := logrus.New()
+	router := chi.NewRouter()
+	router.Use(middleware.Logger(logger))
+
 	cfg := initConfig(logger)
 
 	dbConnection := initConnectionToDB(cfg.DB, logger)
 
 	userRepo := initUserRepo(dbConnection, cfg.DB, logger)
 	userService := service.NewUserService(userRepo)
+	authService := service.NewAuthService(userRepo, cfg.JWTKeyword)
 
-	srv := server.NewUserHandler(cfg.App.Port, logger, userService)
+	userHandler := server.NewUserHandler(logger, userService, authService, router, cfg.JWTKeyword)
+	userHandler.RegisterUserRoutes()
 
-	srv.RegisterRoutes()
-	srv.StartServer()
+	authHandler := server.NewAuthHandler(logger, authService, router)
+	authHandler.RegisterAuthRoutes()
+
+	startServer(cfg.App.Port, router, logger)
+}
+
+func startServer(listenURI string, r chi.Router, logger *logrus.Logger) {
+	srv := http.Server{
+		Addr:    listenURI,
+		Handler: r,
+	}
+
+	logger.Info(fmt.Sprintf("server is running on port %v!", listenURI))
+	err := srv.ListenAndServe()
+	if err != nil {
+		logger.Fatal(err)
+	}
 }
 
 func initUserRepo(db *sqlx.DB, cfg *config.DB, logger *logrus.Logger) *repository.UserRepo {

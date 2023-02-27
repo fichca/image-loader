@@ -7,3 +7,15 @@ type UserDto struct {
 	Password    string `json:"password"`
 	Description string `json:"description"`
 }
+
+type AuthUserDto struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+}
+
+func NewAuthUserDto(login string, password string) AuthUserDto {
+	return AuthUserDto{
+		Login:    login,
+		Password: password,
+	}
+}

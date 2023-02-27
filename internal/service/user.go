@@ -8,7 +8,7 @@ import (
 	"github.com/jinzhu/copier"
 )
 
-type repository interface {
+type userRepository interface {
 	Add(ctx context.Context, user entity.User) error
 	GetById(ctx context.Context, id int) (entity.User, error)
 	Update(ctx context.Context, user entity.User) error
@@ -17,7 +17,13 @@ type repository interface {
 }
 
 type userService struct {
-	repo repository
+	repo userRepository
+}
+
+func NewUserService(repo userRepository) *userService {
+	return &userService{
+		repo: repo,
+	}
 }
 
 func (u *userService) Add(ctx context.Context, user dto.UserDto) error {
@@ -51,12 +57,6 @@ func (u *userService) GetAll(ctx context.Context) ([]dto.UserDto, error) {
 	}
 
 	return users, nil
-}
-
-func NewUserService(repo repository) *userService {
-	return &userService{
-		repo: repo,
-	}
 }
 
 func toUserDto(user entity.User) dto.UserDto {
