@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/fichca/image-loader/internal/config"
 	"github.com/fichca/image-loader/internal/middleware"
@@ -10,6 +11,8 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/sirupsen/logrus"
 	"net/http"
 )
@@ -17,18 +20,24 @@ import (
 func main() {
 	logger := logrus.New()
 	router := chi.NewRouter()
+
 	router.Use(middleware.Logger(logger))
 
 	cfg := initConfig(logger)
 
-	dbConnection := initConnectionToDB(cfg.DB, logger)
+	dbConnection := initDBConnection(cfg.DB, logger)
+	minioConnection := initMinioConnection(logger, cfg.Minio)
 
 	userRepo := initUserRepo(dbConnection, cfg.DB, logger)
 	userService := service.NewUserService(userRepo)
 	authService := service.NewAuthService(userRepo, cfg.JWTKeyword)
+	fileService := service.NewFileService(minioConnection, cfg.Minio)
 
 	userHandler := server.NewUserHandler(logger, userService, authService, router, cfg.JWTKeyword)
 	userHandler.RegisterUserRoutes()
+
+	fileHandler := server.NewFileHandler(logger, fileService, router)
+	fileHandler.RegisterFileRoutes()
 
 	authHandler := server.NewAuthHandler(logger, authService, router)
 	authHandler.RegisterAuthRoutes()
@@ -47,6 +56,29 @@ func startServer(listenURI string, r chi.Router, logger *logrus.Logger) {
 	if err != nil {
 		logger.Fatal(err)
 	}
+}
+
+func initMinioConnection(logger *logrus.Logger, cfg *config.Minio) *minio.Client {
+	minioClient, err := minio.New(cfg.Endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.KeyID, cfg.SecretKey, ""),
+		Secure: false,
+	})
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	ok, err := minioClient.BucketExists(context.Background(), cfg.Bucket)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	if !ok {
+		err = minioClient.MakeBucket(context.Background(), cfg.Bucket, minio.MakeBucketOptions{})
+		if err != nil {
+			logger.Fatal(err)
+		}
+	}
+	return minioClient
 }
 
 func initUserRepo(db *sqlx.DB, cfg *config.DB, logger *logrus.Logger) *repository.UserRepo {
@@ -68,7 +100,7 @@ func initConfig(logger *logrus.Logger) *config.Config {
 	return &cfg
 }
 
-func initConnectionToDB(cfg *config.DB, logger *logrus.Logger) *sqlx.DB {
+func initDBConnection(cfg *config.DB, logger *logrus.Logger) *sqlx.DB {
 	db, err := sqlx.Connect(cfg.Driver, fmt.Sprintf("user=%s dbname=%s sslmode=%s password=%s", cfg.User,
 		cfg.Name, cfg.SSLMode, cfg.Password))
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 type authService interface {
 	Authorize(ctx context.Context, login, password string) (string, error)
 }
+
 type authHandler struct {
 	logger *logrus.Logger
 	r      *chi.Mux
