@@ -21,6 +21,15 @@ import (
 	"net/http"
 )
 
+// @title           Image-loader
+// @version         1.0
+// @description     Image-loader API
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /
 func main() {
 	logger := logrus.New()
 	router := chi.NewRouter()

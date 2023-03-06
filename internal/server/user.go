@@ -48,6 +48,19 @@ func (uh *userHandler) RegisterUserRoutes() {
 	})
 }
 
+// HandleAddUser adds a new user
+//
+//	@Summary      AddUser
+//	@Description  add a new user
+//	@Tags         user
+//	@Accept       json
+//	@Produce      json
+//	@Param        user    body     dto.UserDto  true  "add a new user"
+//	@Success      200  {array}   response.Response
+//	@Failure      400  {object}  response.Response
+//	@Failure      404  {object}  response.Response
+//	@Failure      500  {object}  response.Response
+//	@Router       /user/add [post]
 func (uh *userHandler) HandleAddUser(w http.ResponseWriter, r *http.Request) {
 	var user dto.UserDto
 
@@ -73,6 +86,19 @@ func (uh *userHandler) HandleAddUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleGetByIdUser get user by id
+//
+//	@Summary        GetUserById
+//	@Description    get user
+//	@Tags            user
+//	@Accept            json
+//	@Produce        json
+//	@Param            id    path        string    true    "get user by ID"
+//	@Success        200    {array}        dto.UserResponse
+//	@Failure        400    {object}    response.Response
+//	@Failure        404    {object}    response.Response
+//	@Failure        500    {object}    response.Response
+//	@Router            /user/{userID} [get]
 func (uh *userHandler) HandleGetByIdUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "userID")
 
@@ -101,6 +127,19 @@ func (uh *userHandler) HandleGetByIdUser(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// HandleUpdateUser update user
+//
+//	@Summary        UpdateUser
+//	@Description    update user
+//	@Tags            user
+//	@Accept            json
+//	@Produce        json
+//	@Param            user    body        dto.UserDto    true    "update user"
+//	@Success        200
+//	@Failure        400        {object}    response.Response
+//	@Failure        404        {object}    response.Response
+//	@Failure        500        {object}    response.Response
+//	@Router            /user/update [put]
 func (uh *userHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	var user dto.UserDto
 
@@ -125,6 +164,20 @@ func (uh *userHandler) HandleUpdateUser(w http.ResponseWriter, r *http.Request) 
 
 	w.WriteHeader(http.StatusOK)
 }
+
+// HandleDeleteByIdUser delete a user
+//
+//	@Summary        DeleteUser
+//	@Description    delete a user
+//	@Tags            user
+//	@Accept            json
+//	@Produce        json
+//	@Param            id    path        string    true    "delete user"
+//	@Success        200
+//	@Failure        400    {object}    response.Response
+//	@Failure        404    {object}    response.Response
+//	@Failure        500    {object}    response.Response
+//	@Router            /user/{userID} [delete]
 func (uh *userHandler) HandleDeleteByIdUser(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "userID")
 
@@ -143,6 +196,18 @@ func (uh *userHandler) HandleDeleteByIdUser(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleGetAllUsers get all users
+//
+//	@Summary        GetAllUser
+//	@Description    get all users
+//	@Tags           user
+//	@Accept         json
+//	@Produce        json
+//	@Success        200    {array}        dto.UserDto
+//	@Failure        400    {object}    response.Response
+//	@Failure        404    {object}    response.Response
+//	@Failure        500    {object}    response.Response
+//	@Router            /user/ [get]
 func (uh *userHandler) HandleGetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	users, err := uh.us.GetAll(context.Background())
