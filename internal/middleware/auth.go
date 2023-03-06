@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"github.com/fichca/image-loader/internal/constants"
 	"github.com/fichca/image-loader/internal/dto"
 	"github.com/fichca/image-loader/internal/response"
 	"github.com/golang-jwt/jwt/v5"
@@ -12,7 +13,7 @@ import (
 )
 
 type authService interface {
-	ValidateUser(ctx context.Context, user dto.AuthUserDto) error
+	ValidateUser(ctx context.Context, user dto.AuthUserDto) (int64, error)
 }
 
 func Auth(us authService, keyword string, logger *logrus.Logger) func(next http.Handler) http.Handler {
@@ -23,12 +24,15 @@ func Auth(us authService, keyword string, logger *logrus.Logger) func(next http.
 				writeErr(err, logger, w)
 				return
 			}
-			err = us.ValidateUser(context.Background(), user)
+			userId, err := us.ValidateUser(context.Background(), user)
+
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, constants.IdCtxKey, int(userId))
 			if err != nil {
 				writeErr(err, logger, w)
 				return
 			}
-			next.ServeHTTP(w, r)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		}
 		return http.HandlerFunc(fn)
 	}

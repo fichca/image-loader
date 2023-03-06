@@ -3,23 +3,18 @@ package repository
 import (
 	"context"
 	"fmt"
-	"github.com/fichca/image-loader/internal/config"
 	"github.com/fichca/image-loader/internal/entity"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
 )
 
 type UserRepo struct {
-	db  *sqlx.DB
-	cfg *config.DB
+	db *sqlx.DB
 }
 
-func NewUserRepo(db *sqlx.DB, cfg *config.DB) *UserRepo {
+func NewUserRepo(db *sqlx.DB) *UserRepo {
 	return &UserRepo{
-		db:  db,
-		cfg: cfg,
+		db: db,
 	}
 }
 
@@ -90,7 +85,7 @@ func (u *UserRepo) GetAll(ctx context.Context) ([]entity.User, error) {
 	return users, nil
 }
 
-func (u *UserRepo) CheckAuth(ctx context.Context, login, password string) (entity.User, error) {
+func (u *UserRepo) GetUserByLoginAndPassword(ctx context.Context, login, password string) (entity.User, error) {
 	query := `SELECT * FROM users WHERE login = $1 AND password = $2`
 
 	var us entity.User
@@ -103,25 +98,4 @@ func (u *UserRepo) CheckAuth(ctx context.Context, login, password string) (entit
 	}
 
 	return us, nil
-}
-
-func (u *UserRepo) RunMigrations() error {
-	driver, err := postgres.WithInstance(u.db.DB, &postgres.Config{})
-	if err != nil {
-		return fmt.Errorf("failed to get migration tool driver: %w", err)
-	}
-
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://db/migrations",
-		u.cfg.Driver, driver)
-	if err != nil {
-		return fmt.Errorf("failed to connect migration tool: %w", err)
-	}
-
-	err = m.Up()
-	if err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
-	}
-
-	return nil
 }

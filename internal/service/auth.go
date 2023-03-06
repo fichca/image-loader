@@ -11,23 +11,23 @@ import (
 )
 
 type authRepository interface {
-	CheckAuth(ctx context.Context, login, password string) (entity.User, error)
+	GetUserByLoginAndPassword(ctx context.Context, login, password string) (entity.User, error)
 }
 
-type authService struct {
+type AuthService struct {
 	repo       authRepository
 	jwtKeyword string
 }
 
-func NewAuthService(repo authRepository, jwtKeyword string) *authService {
-	return &authService{
+func NewAuthService(repo authRepository, jwtKeyword string) *AuthService {
+	return &AuthService{
 		repo:       repo,
 		jwtKeyword: jwtKeyword,
 	}
 }
 
-func (a authService) Authorize(ctx context.Context, login, password string) (string, error) {
-	user, err := a.repo.CheckAuth(ctx, login, password)
+func (a AuthService) Authorize(ctx context.Context, login, password string) (string, error) {
+	user, err := a.repo.GetUserByLoginAndPassword(ctx, login, password)
 	if err != nil {
 		return "", fmt.Errorf("failed to authorize user: %w", err)
 	}
@@ -52,10 +52,10 @@ func (a authService) Authorize(ctx context.Context, login, password string) (str
 	return tokenString, nil
 }
 
-func (a authService) ValidateUser(ctx context.Context, user dto.AuthUserDto) error {
-	_, err := a.repo.CheckAuth(ctx, user.Login, user.Password)
+func (a AuthService) ValidateUser(ctx context.Context, authUser dto.AuthUserDto) (int64, error) {
+	user, err := a.repo.GetUserByLoginAndPassword(ctx, authUser.Login, authUser.Password)
 	if err != nil {
-		return fmt.Errorf("login and password dosen't match: %w", err)
+		return 0, fmt.Errorf("login and password dosen't match: %w", err)
 	}
-	return nil
+	return user.ID, nil
 }

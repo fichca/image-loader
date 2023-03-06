@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/fichca/image-loader/internal/dto"
-	"github.com/fichca/image-loader/internal/middleware"
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -14,31 +13,25 @@ import (
 
 type userService interface {
 	Add(ctx context.Context, user dto.UserDto) error
-	GetById(ctx context.Context, id int) (dto.UserDto, error)
+	GetById(ctx context.Context, id int) (dto.UserResponse, error)
 	Update(ctx context.Context, user dto.UserDto) error
 	DeleteById(ctx context.Context, id int) error
 	GetAll(ctx context.Context) ([]dto.UserDto, error)
 }
 
-type validateService interface {
-	ValidateUser(ctx context.Context, user dto.AuthUserDto) error
-}
-
 type userHandler struct {
-	logger     *logrus.Logger
-	r          *chi.Mux
-	us         userService
-	vs         validateService
-	jwtKeyword string
+	logger         *logrus.Logger
+	r              *chi.Mux
+	us             userService
+	authMiddleware func(next http.Handler) http.Handler
 }
 
-func NewUserHandler(logger *logrus.Logger, us userService, vs validateService, r *chi.Mux, jwtKeyword string) *userHandler {
+func NewUserHandler(logger *logrus.Logger, us userService, r *chi.Mux, authMiddleware func(next http.Handler) http.Handler) *userHandler {
 	return &userHandler{
-		logger:     logger,
-		r:          r,
-		us:         us,
-		vs:         vs,
-		jwtKeyword: jwtKeyword,
+		logger:         logger,
+		r:              r,
+		us:             us,
+		authMiddleware: authMiddleware,
 	}
 }
 
@@ -46,11 +39,11 @@ func (uh *userHandler) RegisterUserRoutes() {
 	uh.r.Post("/user/add", uh.HandleAddUser)
 
 	uh.r.Group(func(r chi.Router) {
-		r.Use(middleware.Auth(uh.vs, uh.jwtKeyword, uh.logger))
+		r.Use(uh.authMiddleware)
 
 		r.Get("/user/{userID}", uh.HandleGetByIdUser)
 		r.Put("/user/update", uh.HandleUpdateUser)
-		r.Delete("/user/delete/{userID}", uh.HandleDeleteByIdUser)
+		r.Delete("/user/{userID}", uh.HandleDeleteByIdUser)
 		r.Get("/user", uh.HandleGetAllUsers)
 	})
 }
