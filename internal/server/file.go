@@ -40,6 +40,19 @@ func (fh *fileHandler) RegisterFileRoutes() {
 	})
 }
 
+// HandleAddFile add image to minio
+//
+//	@Summary        AddFile
+//	@Description    add image to minio
+//	@Tags           image
+//	@Accept         json
+//	@Produce        json
+//	@Param          fileKey     formData        file    true    "upload images"
+//	@Success        200        {array}     response.Response
+//	@Failure        400        {object}    response.Response
+//	@Failure        404        {object}    response.Response
+//	@Failure        500        {object}    response.Response
+//	@Router            /image/add [post]
 func (fh *fileHandler) HandleAddFile(w http.ResponseWriter, r *http.Request) {
 	file, header, err := r.FormFile("fileKey")
 	if err != nil {

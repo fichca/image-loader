@@ -33,6 +33,19 @@ func (ah *authHandler) RegisterAuthRoutes() {
 	ah.r.Get("/user/auth", ah.HandleAuthorize)
 }
 
+// HandleAuthorize issues a JWT
+//
+//	@Summary      Authorize
+//	@Description  Issue JWT
+//	@Tags         auth
+//	@Accept       json
+//	@Produce      json
+//	@Param        user    body     dto.AuthUserDto  true  "authorize user"
+//	@Success      200  {array}   response.Response
+//	@Failure      400  {object}  response.Response
+//	@Failure      404  {object}  response.Response
+//	@Failure      500  {object}  response.Response
+//	@Router       /user/auth [get]
 func (ah *authHandler) HandleAuthorize(w http.ResponseWriter, r *http.Request) {
 	var user dto.AuthUserDto
 
