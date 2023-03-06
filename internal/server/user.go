@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/fichca/image-loader/internal/dto"
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
@@ -14,47 +13,39 @@ import (
 
 type userService interface {
 	Add(ctx context.Context, user dto.UserDto) error
-	GetById(ctx context.Context, id int) (dto.UserDto, error)
+	GetById(ctx context.Context, id int) (dto.UserResponse, error)
 	Update(ctx context.Context, user dto.UserDto) error
 	DeleteById(ctx context.Context, id int) error
 	GetAll(ctx context.Context) ([]dto.UserDto, error)
 }
 
 type userHandler struct {
-	listenURI string
-	logger    *logrus.Logger
-	r         chi.Router
-	us        userService
+	logger         *logrus.Logger
+	r              *chi.Mux
+	us             userService
+	authMiddleware func(next http.Handler) http.Handler
 }
 
-func NewUserHandler(listenURI string, logger *logrus.Logger, us userService) *userHandler {
+func NewUserHandler(logger *logrus.Logger, us userService, r *chi.Mux, authMiddleware func(next http.Handler) http.Handler) *userHandler {
 	return &userHandler{
-		listenURI: listenURI,
-		logger:    logger,
-		r:         chi.NewRouter(),
-		us:        us,
+		logger:         logger,
+		r:              r,
+		us:             us,
+		authMiddleware: authMiddleware,
 	}
 }
 
-func (uh *userHandler) RegisterRoutes() {
-	uh.r.Get("/user/{userID}", uh.HandleGetByIdUser)
+func (uh *userHandler) RegisterUserRoutes() {
 	uh.r.Post("/user/add", uh.HandleAddUser)
-	uh.r.Put("/user/update", uh.HandleUpdateUser)
-	uh.r.Delete("/user/delete/{userID}", uh.HandleDeleteByIdUser)
-	uh.r.Get("/user", uh.HandleGetAllUsers)
-}
 
-func (uh *userHandler) StartServer() {
-	srv := http.Server{
-		Addr:    uh.listenURI,
-		Handler: uh.r,
-	}
+	uh.r.Group(func(r chi.Router) {
+		r.Use(uh.authMiddleware)
 
-	uh.logger.Info(fmt.Sprintf("server is running on port %v!", uh.listenURI))
-	err := srv.ListenAndServe()
-	if err != nil {
-		uh.logger.Fatal(err)
-	}
+		r.Get("/user/{userID}", uh.HandleGetByIdUser)
+		r.Put("/user/update", uh.HandleUpdateUser)
+		r.Delete("/user/{userID}", uh.HandleDeleteByIdUser)
+		r.Get("/user", uh.HandleGetAllUsers)
+	})
 }
 
 func (uh *userHandler) HandleAddUser(w http.ResponseWriter, r *http.Request) {

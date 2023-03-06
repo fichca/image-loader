@@ -8,7 +8,7 @@ import (
 	"github.com/jinzhu/copier"
 )
 
-type repository interface {
+type userRepository interface {
 	Add(ctx context.Context, user entity.User) error
 	GetById(ctx context.Context, id int) (entity.User, error)
 	Update(ctx context.Context, user entity.User) error
@@ -16,28 +16,47 @@ type repository interface {
 	GetAll(ctx context.Context) ([]entity.User, error)
 }
 
-type userService struct {
-	repo repository
+type imageService interface {
+	GetImageUrlsByUserId(ctx context.Context, userId int) ([]string, error)
 }
 
-func (u *userService) Add(ctx context.Context, user dto.UserDto) error {
+type UserService struct {
+	repo userRepository
+	is   imageService
+}
+
+func NewUserService(repo userRepository, imageService imageService) *UserService {
+	return &UserService{
+		repo: repo,
+		is:   imageService,
+	}
+}
+
+func (u *UserService) Add(ctx context.Context, user dto.UserDto) error {
 	return u.repo.Add(ctx, toUserEntity(user))
 }
 
-func (u *userService) GetById(ctx context.Context, id int) (dto.UserDto, error) {
+func (u *UserService) GetById(ctx context.Context, id int) (dto.UserResponse, error) {
 	user, err := u.repo.GetById(ctx, id)
-	return toUserDto(user), err
+	if err != nil {
+		return dto.UserResponse{}, err
+	}
+	urls, err := u.is.GetImageUrlsByUserId(ctx, id)
+	if err != nil {
+		return dto.UserResponse{}, err
+	}
+	return toUserResponse(user, urls), err
 }
 
-func (u *userService) Update(ctx context.Context, user dto.UserDto) error {
+func (u *UserService) Update(ctx context.Context, user dto.UserDto) error {
 	return u.repo.Update(ctx, toUserEntity(user))
 }
 
-func (u *userService) DeleteById(ctx context.Context, id int) error {
+func (u *UserService) DeleteById(ctx context.Context, id int) error {
 	return u.repo.DeleteById(ctx, id)
 }
 
-func (u *userService) GetAll(ctx context.Context) ([]dto.UserDto, error) {
+func (u *UserService) GetAll(ctx context.Context) ([]dto.UserDto, error) {
 	users := make([]dto.UserDto, 0)
 
 	allUsersEntity, err := u.repo.GetAll(ctx)
@@ -53,19 +72,14 @@ func (u *userService) GetAll(ctx context.Context) ([]dto.UserDto, error) {
 	return users, nil
 }
 
-func NewUserService(repo repository) *userService {
-	return &userService{
-		repo: repo,
-	}
-}
-
-func toUserDto(user entity.User) dto.UserDto {
-	return dto.UserDto{
+func toUserResponse(user entity.User, ImageUrls []string) dto.UserResponse {
+	return dto.UserResponse{
 		ID:          user.ID,
 		Name:        user.Name,
 		Login:       user.Login,
 		Password:    user.Password,
 		Description: user.Description.String,
+		ImageUrls:   ImageUrls,
 	}
 }
 
