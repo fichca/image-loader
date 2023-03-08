@@ -14,20 +14,27 @@ type authRepository interface {
 	GetUserByLoginAndPassword(ctx context.Context, login, password string) (entity.User, error)
 }
 
+type tgAuthRepo interface {
+	Authorize(ctx context.Context, userID int, telegramID int64) error
+	CheckTgAuth(ctx context.Context, tgID int64) (int, error)
+}
+
 type AuthService struct {
-	repo       authRepository
+	userRepo   authRepository
+	tgAuthRepo tgAuthRepo
 	jwtKeyword string
 }
 
-func NewAuthService(repo authRepository, jwtKeyword string) *AuthService {
+func NewAuthService(userRepo authRepository, tgAuthRepo tgAuthRepo, jwtKeyword string) *AuthService {
 	return &AuthService{
-		repo:       repo,
+		userRepo:   userRepo,
 		jwtKeyword: jwtKeyword,
+		tgAuthRepo: tgAuthRepo,
 	}
 }
 
-func (a AuthService) Authorize(ctx context.Context, login, password string) (string, error) {
-	user, err := a.repo.GetUserByLoginAndPassword(ctx, login, password)
+func (a *AuthService) Authorize(ctx context.Context, login, password string) (string, error) {
+	user, err := a.userRepo.GetUserByLoginAndPassword(ctx, login, password)
 	if err != nil {
 		return "", fmt.Errorf("failed to authorize user: %w", err)
 	}
@@ -52,10 +59,37 @@ func (a AuthService) Authorize(ctx context.Context, login, password string) (str
 	return tokenString, nil
 }
 
-func (a AuthService) ValidateUser(ctx context.Context, authUser dto.AuthUserDto) (int64, error) {
-	user, err := a.repo.GetUserByLoginAndPassword(ctx, authUser.Login, authUser.Password)
+func (a *AuthService) ValidateUser(ctx context.Context, authUser dto.AuthUserDto) (userID int64, err error) {
+	user, err := a.userRepo.GetUserByLoginAndPassword(ctx, authUser.Login, authUser.Password)
 	if err != nil {
 		return 0, fmt.Errorf("login and password dosen't match: %w", err)
 	}
 	return user.ID, nil
+}
+
+func (a *AuthService) AuthorizeTG(ctx context.Context, tgID int64, login, password string) error {
+	user, err := a.userRepo.GetUserByLoginAndPassword(ctx, login, password)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.ValidateTGUser(ctx, tgID)
+	if err == nil {
+		return err
+	}
+
+	err = a.tgAuthRepo.Authorize(ctx, int(user.ID), tgID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *AuthService) ValidateTGUser(ctx context.Context, tgID int64) (userID int, err error) {
+	userId, err := a.tgAuthRepo.CheckTgAuth(ctx, tgID)
+	if err != nil {
+		return 0, err
+	}
+	return userId, nil
 }
