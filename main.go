@@ -10,6 +10,7 @@ import (
 	"github.com/fichca/image-loader/internal/repository"
 	"github.com/fichca/image-loader/internal/server"
 	"github.com/fichca/image-loader/internal/service"
+	"github.com/fichca/image-loader/internal/telegram"
 	"github.com/go-chi/chi"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -38,11 +39,12 @@ func main() {
 
 	cfg := initConfig(logger)
 
-	userRepo, imageRepo, fileStorage := initRepositories(logger, cfg)
+	userRepo, imageRepo, tgAuthRepo, fileStorage := initRepositories(logger, cfg)
 
-	authService := service.NewAuthService(userRepo, cfg.JWTKeyword)
+	authService := service.NewAuthService(userRepo, tgAuthRepo, cfg.JWTKeyword)
 	fileService := service.NewFileService(fileStorage, imageRepo)
 	userService := service.NewUserService(userRepo, fileService)
+	telegramService := service.NewTelegramService(fileService)
 
 	authMiddleware := middleware.Auth(authService, cfg.JWTKeyword, logger)
 
@@ -55,20 +57,30 @@ func main() {
 	authHandler := server.NewAuthHandler(logger, authService, router)
 	authHandler.RegisterAuthRoutes()
 
+	initBot(cfg, logger, telegramService, authService)
 	startServer(cfg.App.Port, router, logger)
 }
 
-func initRepositories(logger *logrus.Logger, cfg *config.Config) (*repository.UserRepo, *repository.ImageRepo, *filestore.Minio) {
+func initBot(cfg *config.Config, logger *logrus.Logger, telegramService *service.TelegramService, authService *service.AuthService) {
+	bot, err := telegram.NewBot(cfg.TgBot.APIKey, logger, telegramService, authService)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	go bot.StartBot()
+}
+
+func initRepositories(logger *logrus.Logger, cfg *config.Config) (*repository.UserRepo, *repository.ImageRepo, *repository.TgAuthRepo, *filestore.Minio) {
 	dbConnection := initDBConnection(cfg.DB, logger)
 	minioConnection := initMinioConnection(logger, cfg.Minio)
 	userRepo := repository.NewUserRepo(dbConnection)
 	imageRepo := repository.NewImageRepo(dbConnection)
+	tgAuthRepo := repository.NewTgAuthRepo(dbConnection)
 	fileStorage := filestore.NewMinio(minioConnection, cfg.Minio.Bucket)
 	err := RunMigrations(dbConnection.DB, cfg)
 	if err != nil {
 		logger.Warning(err)
 	}
-	return userRepo, imageRepo, fileStorage
+	return userRepo, imageRepo, tgAuthRepo, fileStorage
 }
 
 func startServer(listenURI string, r chi.Router, logger *logrus.Logger) {

@@ -51,20 +51,36 @@ func (fs *FileService) AddImage(ctx context.Context, image dto.Image) error {
 	return nil
 }
 
-func (fs FileService) GetImageUrlsByUserId(ctx context.Context, userId int) ([]string, error) {
+func (fs *FileService) GetImageUrlsByUserId(ctx context.Context, userId int) ([]string, error) {
 	images, err := fs.imageRepository.GetAllByUserId(ctx, userId)
 	if err != nil {
 		return []string{}, fmt.Errorf("failed to get images by userID: %w", err)
 	}
-	names := make([]string, 0)
-	for _, image := range images {
-		names = append(names, image.Name)
-	}
-	urls, err := fs.fileStorage.GetImageUrls(ctx, names)
+	urls, err := fs.fileStorage.GetImageUrls(ctx, getImageNames(images))
 	if err != nil {
 		return urls, fmt.Errorf("failed to get image urls: %w", err)
 	}
 	return urls, nil
+}
+
+func (fs *FileService) GetImageObjectsByUserId(ctx context.Context, userId int) ([]io.Reader, error) {
+	images, err := fs.imageRepository.GetAllByUserId(ctx, userId)
+	if err != nil {
+		return []io.Reader{}, fmt.Errorf("failed to get images by userID: %w", err)
+	}
+	imageObjects, err := fs.fileStorage.GetObjects(ctx, getImageNames(images))
+	if err != nil {
+		return nil, err
+	}
+	return imageObjects, nil
+}
+
+func getImageNames(images []entity.Image) []string {
+	names := make([]string, 0)
+	for _, image := range images {
+		names = append(names, image.Name)
+	}
+	return names
 }
 
 func toImageEntity(image dto.Image) entity.Image {
